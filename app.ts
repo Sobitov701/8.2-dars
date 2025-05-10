@@ -1,63 +1,82 @@
 const form = document.querySelector("form")!;
-const submitButton = document.querySelector("button[type='submit']")!;
-const editButton = document.getElementById("edit")!;
-const deleteButton = document.getElementById("delete")!;
-
 const nameInput = form.elements.namedItem("name") as HTMLInputElement;
 const ageInput = form.elements.namedItem("age") as HTMLInputElement;
-const paragraphs = document.querySelectorAll("ul li p");
+const submitButton = document.querySelector("button[type='submit']")!;
+const ul = document.querySelector("ul")!;
 
-// Sahifa yuklanganda - localStorage dan qiymat olib ko'rsatish
-window.addEventListener("DOMContentLoaded", () => {
-  const storedName = localStorage.getItem("name");
-  const storedAge = localStorage.getItem("age");
+interface User {
+  name: string;
+  age: string;
+}
 
-  if (storedName && storedAge && paragraphs.length >= 2) {
-    paragraphs[0].textContent = storedName;
-    paragraphs[1].textContent = storedAge;
-  }
-});
+function getUsersFromStorage(): User[] {
+  const data = localStorage.getItem("users");
+  return data ? JSON.parse(data) : [];
+}
 
-// Submit - inputdan qiymat olib, p ga yozish, inputni va localStorage ni tozalash
+function saveUsersToStorage(users: User[]): void {
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+function renderUsers() {
+  ul.innerHTML = "";
+  const users = getUsersFromStorage();
+
+  users.forEach((user, index) => {
+    const li = document.createElement("li");
+
+    const p = document.createElement("p");
+    p.textContent = `Name: ${user.name}, Age: ${user.age}`;
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.style.marginLeft = "10px";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.style.marginLeft = "5px";
+
+    editBtn.addEventListener("click", () => {
+      nameInput.value = user.name;
+      ageInput.value = user.age;
+
+      users.splice(index, 1);
+      saveUsersToStorage(users);
+      renderUsers();
+    });
+
+    deleteBtn.addEventListener("click", () => {
+      users.splice(index, 1);
+      saveUsersToStorage(users);
+      renderUsers();
+    });
+
+    li.appendChild(p);
+    li.appendChild(editBtn);
+    li.appendChild(deleteBtn);
+
+    ul.appendChild(li);
+  });
+}
+
 submitButton.addEventListener("click", (e) => {
   e.preventDefault();
 
   const nameValue = nameInput.value.trim();
   const ageValue = ageInput.value.trim();
 
-  if (paragraphs.length >= 2) {
-    paragraphs[0].textContent = nameValue;
-    paragraphs[1].textContent = ageValue;
+  if (!nameValue || !ageValue) {
+    alert("Iltimos, ism va yoshni kiriting.");
+    return;
   }
 
-  // localStorage ga saqlash
-  localStorage.setItem("name", nameValue);
-  localStorage.setItem("age", ageValue);
+  const users = getUsersFromStorage();
+  users.push({ name: nameValue, age: ageValue });
+  saveUsersToStorage(users);
+  renderUsers();
 
-  // Inputlarni tozalash
   nameInput.value = "";
   ageInput.value = "";
 });
 
-// Edit - p dagi qiymatlarni inputga qaytarish
-editButton.addEventListener("click", () => {
-  if (paragraphs.length >= 2) {
-    nameInput.value = paragraphs[0].textContent || "";
-    ageInput.value = paragraphs[1].textContent || "";
-  }
-});
-
-// Delete - p, input va localStorage ni tozalash
-deleteButton.addEventListener("click", () => {
-  if (paragraphs.length >= 2) {
-    paragraphs[0].textContent = "";
-    paragraphs[1].textContent = "";
-  }
-
-  nameInput.value = "";
-  ageInput.value = "";
-
-  // localStorage dan o'chirish
-  localStorage.removeItem("name");
-  localStorage.removeItem("age");
-});
+document.addEventListener("DOMContentLoaded", renderUsers);
